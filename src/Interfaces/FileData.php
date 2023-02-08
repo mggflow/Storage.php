@@ -9,4 +9,6 @@ interface FileData
     public function create(string $hash, int $size, string $mimeType, string $dir): ?int;
 
     public function getById(int $fileId): ?object;
+
+    public function chooseFileForReplication(): ?object;
 }
