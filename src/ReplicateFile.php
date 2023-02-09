@@ -6,15 +6,16 @@ use MGGFLOW\Storage\Exceptions\FileNotFound;
 use MGGFLOW\Storage\Exceptions\NoFile;
 use MGGFLOW\Storage\Exceptions\NoteReplicationFailed;
 use MGGFLOW\Storage\Exceptions\ReplicationFailed;
+use MGGFLOW\Storage\Exceptions\ReplicatorMakingFailed;
 use MGGFLOW\Storage\Interfaces\FileData;
 use MGGFLOW\Storage\Interfaces\FileReplicaData;
-use MGGFLOW\Storage\Interfaces\FileReplicator;
+use MGGFLOW\Storage\Interfaces\FileReplicatorFactory;
 
 class ReplicateFile
 {
     protected FileData $fileData;
     protected FileReplicaData $fileReplicaData;
-    protected FileReplicator $fileReplicator;
+    protected FileReplicatorFactory $fileReplicatorFactory;
 
     protected ?object $file;
     protected string $localPath;
@@ -22,12 +23,12 @@ class ReplicateFile
     protected ?array $replicationResult;
     protected ?int $replicaId;
 
-    public function __construct(FileData       $fileData, FileReplicaData $fileReplicaData,
-                                FileReplicator $fileReplicator)
+    public function __construct(FileData              $fileData, FileReplicaData $fileReplicaData,
+                                FileReplicatorFactory $fileReplicatorFactory)
     {
         $this->fileData = $fileData;
         $this->fileReplicaData = $fileReplicaData;
-        $this->fileReplicator = $fileReplicator;
+        $this->fileReplicatorFactory = $fileReplicatorFactory;
     }
 
     public function replicate(): array
@@ -72,7 +73,10 @@ class ReplicateFile
 
     protected function replicateFile()
     {
-        $this->replicationResult = $this->fileReplicator->replicate($this->localPath, $this->file, $this->replicasNotes);
+        $replicator = $this->fileReplicatorFactory->makeReplicator($this->localPath, $this->file, $this->replicasNotes);
+        if (empty($replicator)) throw new ReplicatorMakingFailed();
+
+        $this->replicationResult = $replicator->replicate();
     }
 
     protected function checkReplicationResult()

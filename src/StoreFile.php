@@ -14,7 +14,7 @@ use MGGFLOW\Storage\Interfaces\FileData;
 use MGGFLOW\Storage\Interfaces\FileMover;
 use MGGFLOW\Storage\Interfaces\FileOwnerData;
 
-class AddFile
+class StoreFile
 {
     protected FileHasher $fileHasher;
     protected FileMover $fileMover;
@@ -49,7 +49,7 @@ class AddFile
         $this->userId = $userId;
     }
 
-    public function add(string $filePath, string $localStorageDir): array
+    public function store(string $filePath, string $localStorageDir): array
     {
         $this->setFields($filePath, $localStorageDir);
         $this->validatePath();

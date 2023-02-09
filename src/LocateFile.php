@@ -3,17 +3,18 @@
 namespace MGGFLOW\Storage;
 
 use MGGFLOW\Storage\Exceptions\FileNotFound;
+use MGGFLOW\Storage\Exceptions\ResolverMakingFailed;
 use MGGFLOW\Storage\Interfaces\FileData;
 use MGGFLOW\Storage\Interfaces\FileOwnerData;
 use MGGFLOW\Storage\Interfaces\FileReplicaData;
-use MGGFLOW\Storage\Interfaces\FileResolver;
+use MGGFLOW\Storage\Interfaces\FileResolverFactory;
 
 class LocateFile
 {
     protected FileData $fileData;
     protected FileOwnerData $fileOwnerData;
     protected FileReplicaData $fileReplicaData;
-    protected FileResolver $fileResolver;
+    protected FileResolverFactory $fileResolverFactory;
 
     protected int $userId;
 
@@ -25,13 +26,13 @@ class LocateFile
     protected ?array $replicasNotes;
 
     public function __construct(FileData        $fileData, FileOwnerData $fileOwnerData,
-                                FileReplicaData $fileReplicaData, FileResolver $fileResolver,
+                                FileReplicaData $fileReplicaData, FileResolverFactory $fileResolverFactory,
                                 int             $userId)
     {
         $this->fileData = $fileData;
         $this->fileOwnerData = $fileOwnerData;
         $this->fileReplicaData = $fileReplicaData;
-        $this->fileResolver = $fileResolver;
+        $this->fileResolverFactory = $fileResolverFactory;
 
         $this->userId = $userId;
     }
@@ -83,7 +84,10 @@ class LocateFile
 
     protected function resolveFile(): array
     {
-        return $this->fileResolver->resolve($this->fileOwnership, $this->file, $this->replicasNotes);
+        $resolver = $this->fileResolverFactory->make($this->fileOwnership, $this->file, $this->replicasNotes);
+        if (empty($resolver)) throw new ResolverMakingFailed();
+
+        return $resolver->resolve();
     }
 
 }
