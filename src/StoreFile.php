@@ -13,6 +13,7 @@ use MGGFLOW\Storage\Interfaces\FileHasher;
 use MGGFLOW\Storage\Interfaces\FileData;
 use MGGFLOW\Storage\Interfaces\FileMover;
 use MGGFLOW\Storage\Interfaces\FileOwnerData;
+use MGGFLOW\Storage\Interfaces\LocalDirectoryChoice;
 
 class StoreFile
 {
@@ -20,6 +21,8 @@ class StoreFile
     protected FileMover $fileMover;
     protected FileData $fileData;
     protected FileOwnerData $fileOwnerData;
+    protected LocalDirectoryChoice $localDirectoryChoice;
+
     protected int $userId;
     protected string $filepath;
     protected string $storageDir;
@@ -37,25 +40,28 @@ class StoreFile
     protected ?object $fileOwner;
     protected ?int $ownershipId;
 
-    public function __construct(FileHasher $fileHasher, FileMover $fileMover,
-                                FileData   $fileData, FileOwnerData $fileOwnerData,
-                                int        $userId)
+    public function __construct(FileHasher           $fileHasher, FileMover $fileMover,
+                                FileData             $fileData, FileOwnerData $fileOwnerData,
+                                LocalDirectoryChoice $localDirectoryChoice,
+                                int                  $userId)
     {
         $this->fileHasher = $fileHasher;
         $this->fileMover = $fileMover;
         $this->fileData = $fileData;
         $this->fileOwnerData = $fileOwnerData;
+        $this->localDirectoryChoice = $localDirectoryChoice;
 
         $this->userId = $userId;
     }
 
-    public function store(string $filePath, string $localStorageDir): array
+    public function store(string $filePath): array
     {
-        $this->setFields($filePath, $localStorageDir);
+        $this->setFields($filePath);
         $this->validatePath();
         $this->parseFileInfo();
         $this->validateFileInfo();
         $this->genFileHash();
+        $this->chooseLocalDir();
         $this->genLocalFilepath();
         $this->provideLocalCopy();
         $this->findFile();
@@ -68,10 +74,9 @@ class StoreFile
         return $this->createResult();
     }
 
-    protected function setFields(string $filePath, string $storageDir)
+    protected function setFields(string $filePath)
     {
         $this->filepath = $filePath;
-        $this->storageDir = $storageDir;
     }
 
     protected function validatePath()
@@ -98,6 +103,11 @@ class StoreFile
     protected function genFileHash()
     {
         $this->fileHash = $this->fileHasher->hash($this->filepath);
+    }
+
+    protected function chooseLocalDir()
+    {
+        $this->storageDir = $this->localDirectoryChoice->chooseForStore($this->fileSize, $this->mimeType);
     }
 
     protected function genLocalFilepath()
