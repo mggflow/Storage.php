@@ -54,9 +54,9 @@ class StoreFile
         $this->userId = $userId;
     }
 
-    public function store(string $filePath): array
+    public function store(string $filePath, string $filename, string $extension): array
     {
-        $this->setFields($filePath);
+        $this->setFields($filePath, $filename, $extension);
         $this->validatePath();
         $this->parseFileInfo();
         $this->validateFileInfo();
@@ -74,9 +74,11 @@ class StoreFile
         return $this->createResult();
     }
 
-    protected function setFields(string $filePath)
+    protected function setFields(string $filePath, string $filename, string $ext)
     {
         $this->filepath = $filePath;
+        $this->filename = $filename;
+        $this->extension = $ext;
     }
 
     protected function validatePath()
@@ -88,10 +90,6 @@ class StoreFile
     {
         $this->mimeType = mime_content_type($this->filepath);
         $this->fileSize = filesize($this->filepath);
-
-        $pathInfo = pathinfo($this->filepath);
-        $this->filename = $pathInfo['filename'];
-        $this->extension = $pathInfo['extension'];
     }
 
     protected function validateFileInfo()
