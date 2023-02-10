@@ -80,6 +80,7 @@ class LocateFile
 
     protected function loadReplicasNotes()
     {
+        $this->replicasNotes = [];
         if (empty($this->replicas)) return;
 
         $this->replicasNotes = $this->fileReplicaData->findForFile($this->fileId, $this->replicas);
@@ -106,7 +107,7 @@ class LocateFile
         if (empty($this->replicasNotes)) return;
 
         foreach ($this->replicasNotes as $replicaNote) {
-            $resolver = $this->fileResolverFactory->makeForReplica($this->fileOwnership, $this->file, $replicaNote);
+            $resolver = $this->fileResolverFactory->makeForReplica($this->fileOwnership, $this->file, (object)$replicaNote);
             if (empty($resolver)) throw new ResolverMakingFailed();
             $this->resolveResults[] = $resolver->resolve();
         }
