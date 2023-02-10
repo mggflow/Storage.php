@@ -84,10 +84,21 @@ class LocateFile
 
     protected function resolveFile(): array
     {
-        $resolver = $this->fileResolverFactory->make($this->fileOwnership, $this->file, $this->replicasNotes);
-        if (empty($resolver)) throw new ResolverMakingFailed();
+        $resolveResults = [];
 
-        return $resolver->resolve();
+        $resolver = $this->fileResolverFactory->makeForLocal($this->fileOwnership, $this->file, $this->replicasNotes);
+        if (empty($resolver)) throw new ResolverMakingFailed();
+        $resolveResults[] = $resolver->resolve();
+
+        if (empty($this->replicasNotes)) return $resolveResults;
+
+        foreach ($this->replicasNotes as $replicaNote){
+            $resolver = $this->fileResolverFactory->makeForReplica($this->fileOwnership, $this->file, $replicaNote);
+            if (empty($resolver)) throw new ResolverMakingFailed();
+            $resolveResults[] = $resolver->resolve();
+        }
+
+        return $resolveResults;
     }
 
 }
