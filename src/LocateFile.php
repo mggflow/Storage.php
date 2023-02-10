@@ -24,6 +24,7 @@ class LocateFile
     protected ?object $fileOwnership;
     protected ?object $file;
     protected ?array $replicasNotes;
+    protected array $resolveResults;
 
     public function __construct(FileData        $fileData, FileOwnerData $fileOwnerData,
                                 FileReplicaData $fileReplicaData, FileResolverFactory $fileResolverFactory,
@@ -46,7 +47,9 @@ class LocateFile
         $this->checkFileNote();
         $this->loadReplicasNotes();
 
-        return $this->resolveFile();
+        $this->resolveFile();
+
+        return $this->createSummary();
     }
 
     protected function setFields(int $fileId, int $replicas)
@@ -82,23 +85,40 @@ class LocateFile
         $this->replicasNotes = $this->fileReplicaData->findForFile($this->fileId, $this->replicas);
     }
 
-    protected function resolveFile(): array
+    protected function resolveFile()
     {
-        $resolveResults = [];
+        $this->resolveResults = [];
 
+        $this->resolveLocalCopy();
+        $this->resolveReplicas();
+    }
+
+    protected function resolveLocalCopy()
+    {
         $resolver = $this->fileResolverFactory->makeForLocal($this->fileOwnership, $this->file, $this->replicasNotes);
         if (empty($resolver)) throw new ResolverMakingFailed();
-        $resolveResults[] = $resolver->resolve();
 
-        if (empty($this->replicasNotes)) return $resolveResults;
+        $this->resolveResults[] = $resolver->resolve();
+    }
 
-        foreach ($this->replicasNotes as $replicaNote){
+    protected function resolveReplicas()
+    {
+        if (empty($this->replicasNotes)) return;
+
+        foreach ($this->replicasNotes as $replicaNote) {
             $resolver = $this->fileResolverFactory->makeForReplica($this->fileOwnership, $this->file, $replicaNote);
             if (empty($resolver)) throw new ResolverMakingFailed();
-            $resolveResults[] = $resolver->resolve();
+            $this->resolveResults[] = $resolver->resolve();
         }
+    }
 
-        return $resolveResults;
+    protected function createSummary(): array
+    {
+        return [
+            'file' => $this->file,
+            'ownership' => $this->fileOwnership,
+            'resolving' => $this->resolveResults
+        ];
     }
 
 }
