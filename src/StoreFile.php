@@ -131,6 +131,7 @@ class StoreFile
     {
         if (!empty($this->file)) {
             $this->fileId = $this->file->id;
+            return;
         }
 
         $this->fileId = $this->fileData->create($this->fileHash, $this->fileSize, $this->mimeType, $this->storageDir);
