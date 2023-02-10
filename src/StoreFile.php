@@ -89,7 +89,7 @@ class StoreFile
         $this->mimeType = mime_content_type($this->filepath);
         $this->fileSize = filesize($this->filepath);
 
-        $pathInfo = pathinfo($this->filepath, PATHINFO_EXTENSION + PATHINFO_FILENAME);
+        $pathInfo = pathinfo($this->filepath);
         $this->filename = $pathInfo['filename'];
         $this->extension = $pathInfo['extension'];
     }
@@ -148,7 +148,7 @@ class StoreFile
 
     protected function provideOwnership()
     {
-        if (empty($this->fileOwner)) {
+        if (!empty($this->fileOwner)) {
             $this->ownershipId = $this->fileOwner->id;
             return;
         }
