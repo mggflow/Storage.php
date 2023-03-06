@@ -2,13 +2,10 @@
 
 namespace MGGFLOW\Storage;
 
-use MGGFLOW\Storage\Exceptions\FileNotFound;
-use MGGFLOW\Storage\Exceptions\NoFile;
-use MGGFLOW\Storage\Exceptions\NoteReplicationFailed;
-use MGGFLOW\Storage\Exceptions\ReplicationFailed;
-use MGGFLOW\Storage\Exceptions\ReplicatorMakingFailed;
+use MGGFLOW\ExceptionManager\ManageException;
 use MGGFLOW\Storage\Interfaces\FileData;
 use MGGFLOW\Storage\Interfaces\FileReplicaData;
+use MGGFLOW\Storage\Interfaces\FileReplicator;
 use MGGFLOW\Storage\Interfaces\FileReplicatorFactory;
 
 class ReplicateFile
@@ -20,6 +17,7 @@ class ReplicateFile
     protected ?object $file;
     protected string $localPath;
     protected ?array $replicasNotes;
+    protected FileReplicator $fileReplicator;
     protected ?array $replicationResult;
     protected ?int $replicaId;
 
@@ -53,7 +51,10 @@ class ReplicateFile
 
     protected function checkFile()
     {
-        if (empty($this->file)) throw new FileNotFound();
+        if (empty($this->file)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->not('File for Replication')->found()->b()
+            ->fill();
     }
 
     protected function genLocalPath()
@@ -63,7 +64,12 @@ class ReplicateFile
 
     protected function checkLocalCopy()
     {
-        if (!is_file($this->localPath)) throw new NoFile();
+        if (!is_file($this->localPath)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->not('File local copy')->found()
+            ->context($this->file, 'file')
+            ->context($this->localPath, 'localPath')->b()
+            ->fill();
     }
 
     protected function loadReplicasNotes()
@@ -73,15 +79,28 @@ class ReplicateFile
 
     protected function replicateFile()
     {
-        $replicator = $this->fileReplicatorFactory->makeReplicator($this->localPath, $this->file, $this->replicasNotes);
-        if (empty($replicator)) throw new ReplicatorMakingFailed();
+        $this->fileReplicator = $this->fileReplicatorFactory->makeReplicator($this->localPath, $this->file, $this->replicasNotes);
+        if (empty($this->fileReplicator)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->failed(null, 'to make File Replicator')
+            ->context($this->file, 'file')
+            ->context($this->localPath, 'localPath')
+            ->context($this->replicasNotes, 'replicasNotes')->b()
+            ->fill();
 
-        $this->replicationResult = $replicator->replicate();
+        $this->replicationResult = $this->fileReplicator->replicate();
     }
 
     protected function checkReplicationResult()
     {
-        if (empty($this->replicationResult)) throw new ReplicationFailed();
+        if (empty($this->replicationResult)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->failed(null, 'to Replicate File')
+            ->context($this->file, 'file')
+            ->context($this->localPath, 'localPath')
+            ->context($this->replicasNotes, 'replicasNotes')
+            ->context($this->fileReplicator, 'replicator')->b()
+            ->fill();
     }
 
     protected function addReplicaNote()
@@ -94,7 +113,12 @@ class ReplicateFile
 
     protected function checkReplicaNoteCreation()
     {
-        if (empty($this->replicaId)) throw new NoteReplicationFailed();
+        if (empty($this->replicaId)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->failed(null, 'to Create Replica Note')
+            ->context($this->file, 'file')
+            ->context($this->replicationResult, 'replicationResult')->b()
+            ->fill();
     }
 
     protected function createSummary(): array

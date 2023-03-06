@@ -2,13 +2,8 @@
 
 namespace MGGFLOW\Storage;
 
+use MGGFLOW\ExceptionManager\ManageException;
 use MGGFLOW\Storage\Entities\File;
-use MGGFLOW\Storage\Exceptions\EmptyFile;
-use MGGFLOW\Storage\Exceptions\FailedToIdentifyFile;
-use MGGFLOW\Storage\Exceptions\FailedToIdentifyOwnership;
-use MGGFLOW\Storage\Exceptions\FileTooBig;
-use MGGFLOW\Storage\Exceptions\LocalCopyFailed;
-use MGGFLOW\Storage\Exceptions\NoFile;
 use MGGFLOW\Storage\Interfaces\FileHasher;
 use MGGFLOW\Storage\Interfaces\FileData;
 use MGGFLOW\Storage\Interfaces\FileMover;
@@ -83,7 +78,14 @@ class StoreFile
 
     protected function validatePath()
     {
-        if (!is_file($this->filepath)) throw new NoFile();
+        if (!is_file($this->filepath)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->isInvalid('File')
+            ->context($this->userId, 'userId')
+            ->context($this->filepath, 'filepath')
+            ->context($this->filename, 'filename')
+            ->context($this->extension, 'extension')->b()
+            ->fill();
     }
 
     protected function parseFileInfo()
@@ -94,8 +96,18 @@ class StoreFile
 
     protected function validateFileInfo()
     {
-        if ($this->fileSize == 0) throw new EmptyFile();
-        if ($this->fileSize > File::MAX_FILE_SIZE) throw new FileTooBig();
+        if ($this->fileSize == 0)
+            throw ManageException::build()
+                ->log()->info()->b()
+                ->desc()->isEmpty('File')
+                ->context($this->userId, 'userId')->b()
+                ->fill();
+        if ($this->fileSize > File::MAX_FILE_SIZE)
+            throw ManageException::build()
+                ->log()->info()->b()
+                ->desc()->tooMany('File has', 'bytes')
+                ->context($this->userId, 'userId')->b()
+                ->fill();
     }
 
     protected function genFileHash()
@@ -117,7 +129,13 @@ class StoreFile
     {
         if (is_file($this->localFilepath)) return;
 
-        if (!$this->fileMover->move($this->filepath, $this->localFilepath)) throw new LocalCopyFailed();
+        if (!$this->fileMover->move($this->filepath, $this->localFilepath)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->failed(null, 'to Local Copy File')
+            ->context($this->userId, 'userId')
+            ->context($this->fileHash, 'fileHash')
+            ->context($this->localFilepath, 'localFilepath')->b()
+            ->fill();
     }
 
     protected function findFile()
@@ -137,7 +155,12 @@ class StoreFile
 
     protected function checkFileId()
     {
-        if (empty($this->fileId)) throw new FailedToIdentifyFile();
+        if (empty($this->fileId)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->failed(null, 'to Identify or Create File')
+            ->context($this->userId, 'userId')
+            ->context($this->fileHash, 'fileHash')->b()
+            ->fill();
     }
 
     protected function findFileOwner()
@@ -157,7 +180,14 @@ class StoreFile
 
     protected function checkOwnership()
     {
-        if (empty($this->ownershipId)) throw new FailedToIdentifyOwnership();
+        if (empty($this->ownershipId)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->failed(null, 'to Identify Ownership')
+            ->context($this->userId, 'userId')
+            ->context($this->fileId, 'fileId')
+            ->context($this->filename, 'filename')
+            ->context($this->extension, 'extension')->b()
+            ->fill();
     }
 
     protected function createResult(): array

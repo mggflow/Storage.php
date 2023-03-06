@@ -16,6 +16,7 @@
         }
     ],
     "require": {
-        "ext-fileinfo": "*"
+        "ext-fileinfo": "*",
+        "mggflow/exception-manager": "^2.0"
     }
 }

@@ -2,8 +2,7 @@
 
 namespace MGGFLOW\Storage;
 
-use MGGFLOW\Storage\Exceptions\FileNotFound;
-use MGGFLOW\Storage\Exceptions\ResolverMakingFailed;
+use MGGFLOW\ExceptionManager\ManageException;
 use MGGFLOW\Storage\Interfaces\FileData;
 use MGGFLOW\Storage\Interfaces\FileOwnerData;
 use MGGFLOW\Storage\Interfaces\FileReplicaData;
@@ -65,7 +64,12 @@ class LocateFile
 
     protected function checkOwnership()
     {
-        if (empty($this->fileOwnership)) throw new FileNotFound();
+        if (empty($this->fileOwnership)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->failed(null, 'to Identify Ownership')
+            ->context($this->userId, 'userId')
+            ->context($this->fileId, 'fileId')->b()
+            ->fill();
     }
 
     protected function loadFileNote()
@@ -75,7 +79,12 @@ class LocateFile
 
     protected function checkFileNote()
     {
-        if (empty($this->file)) throw new FileNotFound();
+        if (empty($this->file)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->not('File')->found()
+            ->context($this->userId, 'userId')
+            ->context($this->fileId, 'fileId')->b()
+            ->fill();
     }
 
     protected function loadReplicasNotes()
@@ -97,7 +106,13 @@ class LocateFile
     protected function resolveLocalCopy()
     {
         $resolver = $this->fileResolverFactory->makeForLocal($this->fileOwnership, $this->file, $this->replicasNotes);
-        if (empty($resolver)) throw new ResolverMakingFailed();
+        if (empty($resolver)) throw ManageException::build()
+            ->log()->info()->b()
+            ->desc()->failed(null, 'to make File Local Resolver')
+            ->context($this->file, 'file')
+            ->context($this->fileOwnership, 'fileOwnership')
+            ->context($this->replicasNotes, 'replicasNotes')->b()
+            ->fill();
 
         $this->resolveResults[] = $resolver->resolve();
     }
@@ -108,7 +123,13 @@ class LocateFile
 
         foreach ($this->replicasNotes as $replicaNote) {
             $resolver = $this->fileResolverFactory->makeForReplica($this->fileOwnership, $this->file, (object)$replicaNote);
-            if (empty($resolver)) throw new ResolverMakingFailed();
+            if (empty($resolver)) throw ManageException::build()
+                ->log()->info()->b()
+                ->desc()->failed(null, 'to make File Resolver')
+                ->context($this->file, 'file')
+                ->context($this->fileOwnership, 'fileOwnership')
+                ->context($replicaNote, 'replicaNote')->b()
+                ->fill();
             $this->resolveResults[] = $resolver->resolve();
         }
     }
